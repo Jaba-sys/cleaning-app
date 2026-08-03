@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Вход — Клининговая система</title>
+<title>Клининговая система</title>
 <style>
   :root{
     --green:#1fa774;
@@ -16,25 +16,31 @@
   body{
     margin:0;
     min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
     font-family:'Segoe UI', Arial, sans-serif;
     background:linear-gradient(135deg, var(--bg) 0%, #e6f0fb 100%);
+    padding:24px 16px 60px;
+  }
+  .page{
+    max-width:480px;
+    margin:0 auto;
   }
   .card{
     background:#fff;
-    padding:36px 32px;
+    padding:28px 26px;
     border-radius:16px;
-    box-shadow:0 10px 30px rgba(28,111,214,0.15);
-    width:100%;
-    max-width:360px;
+    box-shadow:0 10px 30px rgba(28,111,214,0.12);
+    margin-bottom:20px;
     text-align:center;
   }
   .card h1{
     font-size:22px;
     color:var(--blue-dark);
     margin-bottom:6px;
+  }
+  .card h2{
+    font-size:17px;
+    color:var(--blue-dark);
+    margin-top:0;
   }
   .card p{
     color:#666;
@@ -88,9 +94,153 @@
   .guest-link:hover{
     text-decoration:underline;
   }
+
+  /* --- hero / about --- */
+  .hero{
+    background:linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+    color:#fff;
+  }
+  .hero svg{ width:180px; height:auto; margin-bottom:6px; }
+  .hero h2{
+    color:#fff;
+    margin:6px 0 8px;
+    font-size:21px;
+  }
+  .hero p{
+    margin:0;
+    font-size:14px;
+    line-height:1.5;
+    opacity:.95;
+    max-width:400px;
+    margin:0 auto;
+  }
+
+  /* --- rating --- */
+  .stars{
+    font-size:34px;
+    letter-spacing:6px;
+    cursor:pointer;
+    user-select:none;
+    margin:8px 0;
+  }
+  .stars span{
+    color:#ddd;
+    transition:.15s;
+  }
+  .stars span.filled{
+    color:#f5b301;
+  }
+  .rating-msg{
+    font-size:13px;
+    color:var(--green-dark);
+    font-weight:600;
+    height:18px;
+  }
+
+  /* --- team --- */
+  .team-title{ text-align:center; }
+  .team-sub{
+    text-align:center;
+    color:#666;
+    font-size:13px;
+    margin-top:-8px;
+    margin-bottom:16px;
+  }
+  .team-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));
+    gap:16px;
+  }
+  .member{ text-align:center; }
+  .avatar{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    margin:0 auto 8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    font-weight:700;
+    color:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  }
+  .member b{
+    display:block;
+    font-size:14px;
+    color:#222;
+  }
+  .member .role{
+    font-size:12px;
+    color:#888;
+  }
+  .member .medal{
+    font-size:12px;
+    margin-top:2px;
+  }
 </style>
 </head>
 <body>
+<div class="page">
+
+  <div class="card hero">
+    <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+      <rect x="20" y="40" width="160" height="80" rx="8" fill="#ffffff" opacity="0.15"/>
+      <rect x="30" y="55" width="55" height="35" rx="4" fill="#ffffff" opacity="0.85"/>
+      <rect x="30" y="55" width="55" height="10" rx="4" fill="#ffffff"/>
+      <circle cx="130" cy="72" r="16" fill="#ffffff" opacity="0.9"/>
+      <rect x="122" y="88" width="16" height="24" rx="4" fill="#ffffff" opacity="0.9"/>
+      <path d="M108 100 L122 92" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+      <path d="M152 100 L138 92" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+      <g opacity="0.9">
+        <path d="M60 30 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z" fill="#ffffff"/>
+        <path d="M150 25 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2 z" fill="#ffffff"/>
+        <path d="M100 20 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" fill="#ffffff"/>
+      </g>
+    </svg>
+    <h2>Мы — команда, которая любит чистоту ❤️</h2>
+    <p>Мы бережно и профессионально убираем номера, чтобы каждый гость чувствовал себя как дома. Чистота, аккуратность и забота о деталях — наш стандарт работы.</p>
+  </div>
+
+  <div class="card">
+    <h2>Оцените нашу уборку</h2>
+    <div class="stars" id="stars">
+      <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+    </div>
+    <div class="rating-msg" id="ratingMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2 class="team-title">🐟 Лучшая команда — «Караси»</h2>
+    <div class="team-sub">Работники года</div>
+    <div class="team-grid">
+      <div class="member">
+        <div class="avatar" style="background:linear-gradient(135deg,#1fa774,#158058);">Н</div>
+        <b>Назар</b>
+        <div class="role">Санитар</div>
+        <div class="medal">🏅</div>
+      </div>
+      <div class="member">
+        <div class="avatar" style="background:linear-gradient(135deg,#1c6fd6,#154f9c);">С</div>
+        <b>Святослав</b>
+        <div class="role">Санитар</div>
+        <div class="medal">🏅</div>
+      </div>
+      <div class="member">
+        <div class="avatar" style="background:linear-gradient(135deg,#e8a93a,#c98a1c);">Г</div>
+        <b>Глеб</b>
+        <div class="role">Санитар</div>
+        <div class="medal">🏅</div>
+      </div>
+      <div class="member">
+        <div class="avatar" style="background:linear-gradient(135deg,#d64545,#a83232);">В</div>
+        <b>Вова</b>
+        <div class="role">Администратор</div>
+        <div class="medal">👑</div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="lock">🔒</div>
     <h1>Клининговая система</h1>
@@ -102,6 +252,8 @@
     </form>
     <a href="guest.html" class="guest-link">Я гость — посмотреть время уборки моего номера</a>
   </div>
+
+</div>
 
 <script>
   const ADMIN_HASH  = "2ab477ccd3a276acf23b444fcd802b9227e83becbecda19b0b4d487a54498ad3"; 
@@ -121,7 +273,6 @@
     const hash = await sha256(pwd);
 
     if (hash === ADMIN_HASH){
-      // одноразовый токен сессии — хранится только в этой вкладке
       const token = crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random();
       sessionStorage.setItem("role", "admin");
       sessionStorage.setItem("token", token);
@@ -135,6 +286,25 @@
       errEl.textContent = "Неверный пароль";
       document.getElementById("pwd").value = "";
     }
+  });
+
+  // рейтинг чисто декоративный, никуда не сохраняется
+  const starsEl = document.getElementById("stars");
+  const starSpans = starsEl.querySelectorAll("span");
+  const ratingMsgEl = document.getElementById("ratingMsg");
+  const thankYouMsgs = {
+    1: "Нам жаль, мы станем лучше 🙏",
+    2: "Спасибо, учтём замечания",
+    3: "Спасибо за оценку!",
+    4: "Приятно это слышать! 😊",
+    5: "Вы супер, спасибо! 🏆"
+  };
+  starSpans.forEach(span => {
+    span.addEventListener("click", () => {
+      const v = Number(span.dataset.v);
+      starSpans.forEach(s => s.classList.toggle("filled", Number(s.dataset.v) <= v));
+      ratingMsgEl.textContent = thankYouMsgs[v];
+    });
   });
 </script>
 </body>
