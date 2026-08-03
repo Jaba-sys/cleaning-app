@@ -90,6 +90,8 @@
     font-weight:600;
     color:#fff;
   }
+  .btn-start{ background:var(--blue); }
+  .btn-start:hover{ filter:brightness(1.08); }
   .btn-done{ background:var(--green); }
   .btn-done:hover{ filter:brightness(1.08); }
   .btn-cancel{ background:#d64545; }
@@ -100,6 +102,15 @@
     padding:40px 0;
     font-size:15px;
   }
+  .section-title{
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:#888;
+    margin:22px 0 10px;
+    font-weight:700;
+  }
+  .section-title:first-child{ margin-top:0; }
 </style>
 </head>
 <body>
@@ -135,8 +146,8 @@
   const tasksRef = db.ref("tasks");
   let currentTasks = [];
 
-  // hash of the cancel password (321123), so it's not visible in the page source
-  const CANCEL_HASH = "d282c8a31606e750d5e70fdaabe3f17b61eb3df4beec5fc808ba3d854a6c9165";
+  // hash of the cancel password (4444), so it's not visible in the page source
+  const CANCEL_HASH = "79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619";
 
   async function sha256(text){
     const enc = new TextEncoder().encode(text);
@@ -150,39 +161,61 @@
     return t.time ? ("Scheduled for " + t.time) : "Pending";
   }
 
-  function renderTasks(){
-    const tasks = currentTasks
-      .filter(t => t.status !== "done")
-      .sort((a,b)=>a.createdAt-b.createdAt);
-    const list = document.getElementById("taskList");
-    list.innerHTML = "";
-
-    if (tasks.length === 0){
-      list.innerHTML = '<div class="empty">No cleaning tasks right now 🎉</div>';
-      return;
-    }
-
-    tasks.forEach(t => {
-      const div = document.createElement("div");
-      div.className = "task status-" + t.status;
-      div.innerHTML = `
+  function taskCard(t, actionsHtml){
+    return `
+      <div class="task status-${t.status}">
         <div class="task-info">
           <b>Room ${t.room}</b>
           <div>${t.task}${t.time ? " • " + t.time : ""}</div>
           <span class="badge">${statusLabel(t)}</span>
         </div>
-        <div class="task-actions">
+        <div class="task-actions">${actionsHtml}</div>
+      </div>
+    `;
+  }
+
+  function renderTasks(){
+    const active = currentTasks
+      .filter(t => t.status !== "done")
+      .sort((a,b)=>a.createdAt-b.createdAt);
+    const done = currentTasks
+      .filter(t => t.status === "done")
+      .sort((a,b)=>b.createdAt-a.createdAt);
+
+    const list = document.getElementById("taskList");
+    let html = "";
+
+    html += '<div class="section-title">To clean</div>';
+    if (active.length === 0){
+      html += '<div class="empty">No cleaning tasks right now 🎉</div>';
+    } else {
+      active.forEach(t => {
+        const actions = `
+          ${t.status !== "progress" ? `<button class="btn btn-start" data-action="start" data-id="${t.id}">Start</button>` : ""}
           <button class="btn btn-done" data-action="done" data-id="${t.id}">Done</button>
-          <button class="btn btn-cancel" data-action="cancel" data-id="${t.id}">Cancel</button>
-        </div>
-      `;
-      list.appendChild(div);
-    });
+        `;
+        html += taskCard(t, actions);
+      });
+    }
+
+    if (done.length > 0){
+      html += '<div class="section-title">Completed</div>';
+      done.forEach(t => {
+        const actions = `<button class="btn btn-cancel" data-action="cancel" data-id="${t.id}">Cancel</button>`;
+        html += taskCard(t, actions);
+      });
+    }
+
+    list.innerHTML = html;
 
     list.querySelectorAll("button").forEach(btn => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const action = btn.dataset.action;
+
+        if (action === "start"){
+          tasksRef.child(id).update({status:"progress"});
+        }
 
         if (action === "done"){
           tasksRef.child(id).update({status:"done"});

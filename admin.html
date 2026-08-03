@@ -266,6 +266,7 @@
       room, task,
       time: time || null,
       status: "pending", // pending -> progress -> done
+      hidden: false, // если true — не показывается гостю на странице поиска по номеру комнаты
       createdAt: Date.now()
     });
 
@@ -299,10 +300,11 @@
           <b>Комната ${t.room}</b>
           <div>${t.task}${t.time ? " • " + t.time : ""}</div>
           <span class="badge">${statusLabel(t)}</span>
+          ${t.hidden ? '<span class="badge" style="background:#888;margin-left:6px;">Скрыто от гостей</span>' : ""}
         </div>
         <div class="task-actions">
-          ${t.status !== "progress" && t.status !== "done" ? `<button class="icon-btn" style="background:var(--blue)" data-action="progress" data-id="${t.id}">В работу</button>` : ""}
           ${t.status !== "done" ? `<button class="icon-btn" style="background:var(--green)" data-action="done" data-id="${t.id}">Готово</button>` : `<button class="icon-btn" style="background:var(--pending)" data-action="reset" data-id="${t.id}">Вернуть</button>`}
+          <button class="icon-btn" style="background:#666" data-action="toggleHidden" data-id="${t.id}">${t.hidden ? "Показать гостям" : "Скрыть от гостей"}</button>
           <button class="icon-btn del" data-action="delete" data-id="${t.id}">✕</button>
         </div>
       `;
@@ -314,10 +316,13 @@
         const id = btn.dataset.id;
         const action = btn.dataset.action;
 
-        if (action === "progress") tasksRef.child(id).update({status:"progress"});
         if (action === "done") tasksRef.child(id).update({status:"done"});
         if (action === "reset") tasksRef.child(id).update({status:"pending"});
         if (action === "delete") tasksRef.child(id).remove();
+        if (action === "toggleHidden"){
+          const t = currentTasks.find(x => x.id === id);
+          if (t) tasksRef.child(id).update({hidden: !t.hidden});
+        }
       });
     });
   }

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Уборка номера</title>
+<style>
+  :root{
+    --green:#1fa774;
+    --green-dark:#158058;
+    --blue:#1c6fd6;
+    --blue-dark:#154f9c;
+    --bg:#eef6f2;
+    --card:#ffffff;
+    --pending:#e8a93a;
+    --progress:#1c6fd6;
+    --done:#1fa774;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:linear-gradient(135deg, var(--bg) 0%, #e6f0fb 100%);
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(90deg, var(--green-dark), var(--blue-dark));
+    color:#fff;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{ margin:0; font-size:20px; }
+  header a{
+    color:#fff;
+    font-size:13px;
+    text-decoration:none;
+    opacity:.85;
+  }
+  header a:hover{ text-decoration:underline; }
+
+  .wrap{
+    max-width:520px;
+    margin:24px auto;
+    padding:0 16px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 6px 20px rgba(28,111,214,0.10);
+    margin-bottom:20px;
+  }
+  .card h2{
+    margin-top:0;
+    font-size:17px;
+    color:var(--blue-dark);
+  }
+  .row{
+    display:flex;
+    gap:10px;
+  }
+  input[type=text]{
+    flex:1;
+    padding:12px 14px;
+    border:2px solid #dce8e3;
+    border-radius:10px;
+    font-size:16px;
+    outline:none;
+  }
+  input:focus{ border-color:var(--green); }
+  button.ok{
+    padding:12px 20px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg, var(--green), var(--blue));
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button.ok:hover{ filter:brightness(1.07); }
+
+  .task{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px 18px;
+    margin-bottom:12px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.06);
+    border-left:6px solid var(--pending);
+  }
+  .task.status-progress{ border-left-color: var(--progress); }
+  .task.status-done{ border-left-color: var(--done); opacity:.7; }
+  .task-info b{ font-size:16px; color:#222; }
+  .task-info div{ font-size:13px; color:#666; margin-top:4px; }
+  .badge{
+    display:inline-block;
+    margin-top:6px;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    background:var(--pending);
+  }
+  .status-progress .badge{ background:var(--progress); }
+  .status-done .badge{ background:var(--done); }
+  .empty{
+    text-align:center;
+    color:#888;
+    padding:20px 0;
+    font-size:14px;
+  }
+  .toggle-all{
+    background:none;
+    border:none;
+    color:var(--blue);
+    font-size:13px;
+    cursor:pointer;
+    padding:0;
+    margin-top:6px;
+    text-decoration:underline;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧹 Уборка номера</h1>
+  <a href="index.html">Вход для персонала</a>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Узнать время уборки</h2>
+    <div class="row">
+      <input type="text" id="roomInput" placeholder="Номер вашей комнаты" inputmode="numeric">
+      <button class="ok" id="okBtn">OK</button>
+    </div>
+  </div>
+
+  <div id="result"></div>
+
+  <button class="toggle-all" id="toggleAllBtn">Показать уборку по всем комнатам</button>
+  <div id="allList"></div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const tasksRef = db.ref("tasks");
+  let currentTasks = [];
+  let showAll = false;
+
+  function statusLabel(t){
+    if (t.status === "done") return "Уборка выполнена";
+    if (t.status === "progress") return "Уборка выполняется";
+    return t.time ? ("Уборка запланирована на " + t.time) : "Уборка в ожидании";
+  }
+
+  function taskCard(t){
+    return `
+      <div class="task status-${t.status}">
+        <div class="task-info">
+          <b>Комната ${t.room}</b>
+          <div>${t.task}${t.time ? " • " + t.time : ""}</div>
+          <span class="badge">${statusLabel(t)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function visibleTasks(){
+    // скрытые администратором задачи гостям не показываются
+    return currentTasks.filter(t => !t.hidden);
+  }
+
+  function renderResult(){
+    const room = document.getElementById("roomInput").value.trim();
+    const resultEl = document.getElementById("result");
+    if (!room){
+      resultEl.innerHTML = "";
+      return;
+    }
+    const matches = visibleTasks().filter(t => t.room === room);
+    if (matches.length === 0){
+      resultEl.innerHTML = '<div class="empty">Нет информации об уборке для этой комнаты</div>';
+      return;
+    }
+    resultEl.innerHTML = matches
+      .sort((a,b)=>b.createdAt-a.createdAt)
+      .map(taskCard)
+      .join("");
+  }
+
+  function renderAll(){
+    const allEl = document.getElementById("allList");
+    if (!showAll){
+      allEl.innerHTML = "";
+      return;
+    }
+    const tasks = visibleTasks().sort((a,b)=>b.createdAt-a.createdAt);
+    if (tasks.length === 0){
+      allEl.innerHTML = '<div class="empty">Нет доступных для просмотра комнат</div>';
+      return;
+    }
+    allEl.innerHTML = tasks.map(taskCard).join("");
+  }
+
+  document.getElementById("okBtn").addEventListener("click", renderResult);
+  document.getElementById("roomInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") renderResult();
+  });
+  document.getElementById("toggleAllBtn").addEventListener("click", () => {
+    showAll = !showAll;
+    document.getElementById("toggleAllBtn").textContent = showAll
+      ? "Скрыть список всех комнат"
+      : "Показать уборку по всем комнатам";
+    renderAll();
+  });
+
+  tasksRef.on("value", (snapshot) => {
+    const tasks = [];
+    snapshot.forEach((child) => {
+      tasks.push({ id: child.key, ...child.val() });
+    });
+    currentTasks = tasks;
+    renderResult();
+    renderAll();
+  });
+</script>
+</body>
+</html>
