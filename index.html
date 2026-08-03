@@ -104,10 +104,8 @@
   </div>
 
 <script>
-  // В коде хранятся только SHA-256 хеши паролей, а не сами пароли.
-  // Это не позволяет увидеть пароль, просто открыв исходный код страницы.
-  const ADMIN_HASH  = "2ab477ccd3a276acf23b444fcd802b9227e83becbecda19b0b4d487a54498ad3"; // 18072014
-  const WORKER_HASH = "a320480f534776bddb5cdb54b1e93d210a3c7d199e80a23c1b2178497b184c76"; // 123321
+  const ADMIN_HASH  = "2ab477ccd3a276acf23b444fcd802b9227e83becbecda19b0b4d487a54498ad3"; 
+  const WORKER_HASH = "a320480f534776bddb5cdb54b1e93d210a3c7d199e80a23c1b2178497b184c76"; 
 
   async function sha256(text){
     const enc = new TextEncoder().encode(text);
