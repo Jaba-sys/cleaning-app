@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleaning Tasks</title>
+<style>
+  :root{
+    --green:#1fa774;
+    --green-dark:#158058;
+    --blue:#1c6fd6;
+    --blue-dark:#154f9c;
+    --bg:#eef6f2;
+    --card:#ffffff;
+    --pending:#e8a93a;
+    --progress:#1c6fd6;
+    --done:#1fa774;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:linear-gradient(135deg, var(--bg) 0%, #e6f0fb 100%);
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(90deg, var(--green-dark), var(--blue-dark));
+    color:#fff;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{ margin:0; font-size:20px; }
+  header .sub{ font-size:13px; opacity:.85; }
+  .logout{
+    background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.4);
+    color:#fff;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .logout:hover{ background:rgba(255,255,255,.25); }
+
+  .wrap{
+    max-width:640px;
+    margin:24px auto;
+    padding:0 16px;
+  }
+  .task{
+    background:var(--card);
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:14px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.08);
+    border-left:6px solid var(--pending);
+  }
+  .task.status-progress{ border-left-color: var(--progress); }
+  .task.status-done{ border-left-color: var(--done); opacity:.65; }
+  .task-info b{ font-size:18px; color:#222; }
+  .task-info div{ font-size:14px; color:#666; margin-top:6px; }
+  .badge{
+    display:inline-block;
+    margin-top:8px;
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    background:var(--pending);
+  }
+  .status-progress .badge{ background:var(--progress); }
+  .status-done .badge{ background:var(--done); }
+  .task-actions{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .btn{
+    border:none;
+    border-radius:9px;
+    padding:10px 16px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    color:#fff;
+  }
+  .btn-done{ background:var(--green); }
+  .btn-done:hover{ filter:brightness(1.08); }
+  .btn-cancel{ background:#d64545; }
+  .btn-cancel:hover{ filter:brightness(1.08); }
+  .empty{
+    text-align:center;
+    color:#888;
+    padding:40px 0;
+    font-size:15px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🧹 Cleaning Tasks</h1>
+    <div class="sub">Housekeeping</div>
+  </div>
+  <button class="logout" id="logoutBtn">Log out</button>
+</header>
+
+<div class="wrap">
+  <div id="taskList"></div>
+</div>
+
+<script>
+  // --- block direct access without login ---
+  if (sessionStorage.getItem("role") !== "worker" || !sessionStorage.getItem("token")) {
+    window.location.href = "index.html";
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    sessionStorage.clear();
+    window.location.href = "index.html";
+  });
+
+  const STORAGE_KEY = "cleaning_tasks";
+  // hash of the cancel password (321123), so it's not visible in the page source
+  const CANCEL_HASH = "d282c8a31606e750d5e70fdaabe3f17b61eb3df4beec5fc808ba3d854a6c9165";
+
+  async function sha256(text){
+    const enc = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  function loadTasks(){
+    try{
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }catch(e){ return []; }
+  }
+  function saveTasks(tasks){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function statusLabel(t){
+    if (t.status === "done") return "Done";
+    if (t.status === "progress") return "In progress";
+    return t.time ? ("Scheduled for " + t.time) : "Pending";
+  }
+
+  function renderTasks(){
+    const tasks = loadTasks()
+      .filter(t => t.status !== "done")
+      .sort((a,b)=>a.createdAt-b.createdAt);
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    if (tasks.length === 0){
+      list.innerHTML = '<div class="empty">No cleaning tasks right now 🎉</div>';
+      return;
+    }
+
+    tasks.forEach(t => {
+      const div = document.createElement("div");
+      div.className = "task status-" + t.status;
+      div.innerHTML = `
+        <div class="task-info">
+          <b>Room ${t.room}</b>
+          <div>${t.task}${t.time ? " • " + t.time : ""}</div>
+          <span class="badge">${statusLabel(t)}</span>
+        </div>
+        <div class="task-actions">
+          <button class="btn btn-done" data-action="done" data-id="${t.id}">Done</button>
+          <button class="btn btn-cancel" data-action="cancel" data-id="${t.id}">Cancel</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    list.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        let tasks = loadTasks();
+        const idx = tasks.findIndex(x => x.id === id);
+        if (idx === -1) return;
+
+        if (action === "done"){
+          tasks[idx].status = "done";
+          saveTasks(tasks);
+          renderTasks();
+        }
+
+        if (action === "cancel"){
+          const pwd = prompt("Enter the password to cancel this task:");
+          if (pwd === null) return;
+          const hash = await sha256(pwd);
+          if (hash === CANCEL_HASH){
+            tasks[idx].status = "pending";
+            saveTasks(tasks);
+            renderTasks();
+          } else {
+            alert("Wrong password.");
+          }
+        }
+      });
+    });
+  }
+
+  renderTasks();
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) renderTasks();
+  });
+  setInterval(renderTasks, 3000);
+</script>
+</body>
+</html>

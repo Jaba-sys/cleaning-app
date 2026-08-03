@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель — Клининг</title>
+<style>
+  :root{
+    --green:#1fa774;
+    --green-dark:#158058;
+    --blue:#1c6fd6;
+    --blue-dark:#154f9c;
+    --bg:#eef6f2;
+    --card:#ffffff;
+    --pending:#e8a93a;
+    --progress:#1c6fd6;
+    --done:#1fa774;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:linear-gradient(135deg, var(--bg) 0%, #e6f0fb 100%);
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(90deg, var(--green-dark), var(--blue-dark));
+    color:#fff;
+    padding:18px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header h1{ margin:0; font-size:20px; }
+  header .sub{ font-size:13px; opacity:.85; }
+  .logout{
+    background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.4);
+    color:#fff;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .logout:hover{ background:rgba(255,255,255,.25); }
+
+  .wrap{
+    max-width:720px;
+    margin:24px auto;
+    padding:0 16px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 6px 20px rgba(28,111,214,0.10);
+    margin-bottom:20px;
+  }
+  .card h2{
+    margin-top:0;
+    font-size:17px;
+    color:var(--blue-dark);
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:#555;
+    margin:12px 0 6px;
+    font-weight:600;
+  }
+  input[type=text], input[type=time]{
+    width:100%;
+    padding:11px 12px;
+    border:2px solid #dce8e3;
+    border-radius:10px;
+    font-size:15px;
+    outline:none;
+  }
+  input:focus{ border-color:var(--green); }
+  .presets{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:8px;
+  }
+  .preset-btn{
+    padding:8px 14px;
+    border-radius:20px;
+    border:2px solid var(--green);
+    background:#fff;
+    color:var(--green-dark);
+    font-size:13px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .preset-btn.active, .preset-btn:hover{
+    background:var(--green);
+    color:#fff;
+  }
+  .time-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-top:8px;
+  }
+  .now-btn{
+    padding:10px 14px;
+    border-radius:10px;
+    border:2px solid var(--blue);
+    background:#fff;
+    color:var(--blue-dark);
+    cursor:pointer;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .now-btn:hover{ background:var(--blue); color:#fff; }
+  .add-btn{
+    margin-top:18px;
+    width:100%;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg, var(--green), var(--blue));
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .add-btn:hover{ filter:brightness(1.07); }
+
+  .task{
+    background:var(--card);
+    border-radius:14px;
+    padding:16px 18px;
+    margin-bottom:12px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.06);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    border-left:6px solid var(--pending);
+  }
+  .task.status-progress{ border-left-color: var(--progress); }
+  .task.status-done{ border-left-color: var(--done); opacity:.7; }
+  .task-info b{ font-size:16px; color:#222; }
+  .task-info div{ font-size:13px; color:#666; margin-top:4px; }
+  .badge{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    color:#fff;
+    background:var(--pending);
+  }
+  .status-progress .badge{ background:var(--progress); }
+  .status-done .badge{ background:var(--done); }
+  .task-actions{ display:flex; gap:8px; }
+  .icon-btn{
+    border:none;
+    border-radius:8px;
+    padding:8px 10px;
+    cursor:pointer;
+    font-size:13px;
+    color:#fff;
+  }
+  .del{ background:#d64545; }
+  .del:hover{ filter:brightness(1.1); }
+  .empty{
+    text-align:center;
+    color:#888;
+    padding:30px 0;
+    font-size:14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🧹 Панель администратора</h1>
+    <div class="sub">Клининговая группа</div>
+  </div>
+  <button class="logout" id="logoutBtn">Выйти</button>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Добавить задачу</h2>
+    <label>Номер комнаты</label>
+    <input type="text" id="room" placeholder="Например, 305">
+
+    <label>Что нужно убрать</label>
+    <input type="text" id="task" placeholder="Введите текст или выберите ниже">
+    <div class="presets">
+      <button type="button" class="preset-btn" data-val="Вся комната">Вся комната</button>
+      <button type="button" class="preset-btn" data-val="Чемоданы">Чемоданы</button>
+      <button type="button" class="preset-btn" data-val="Кровать">Кровать</button>
+    </div>
+
+    <label>Время</label>
+    <div class="time-row">
+      <input type="time" id="time">
+      <button type="button" class="now-btn" id="nowBtn">Сейчас</button>
+    </div>
+
+    <button class="add-btn" id="addBtn">+ Добавить комнату</button>
+  </div>
+
+  <div class="card">
+    <h2>Список задач</h2>
+    <div id="taskList"></div>
+  </div>
+
+</div>
+
+<script>
+  // --- защита от прямого захода без пароля ---
+  if (sessionStorage.getItem("role") !== "admin" || !sessionStorage.getItem("token")) {
+    window.location.href = "index.html";
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    sessionStorage.clear();
+    window.location.href = "index.html";
+  });
+
+  const STORAGE_KEY = "cleaning_tasks";
+
+  function loadTasks(){
+    try{
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }catch(e){ return []; }
+  }
+  function saveTasks(tasks){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  // presets
+  let selectedPreset = null;
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("task").value = btn.dataset.val;
+    });
+  });
+
+  document.getElementById("nowBtn").addEventListener("click", () => {
+    document.getElementById("time").value = "";
+  });
+
+  document.getElementById("addBtn").addEventListener("click", () => {
+    const room = document.getElementById("room").value.trim();
+    const task = document.getElementById("task").value.trim();
+    const time = document.getElementById("time").value;
+
+    if (!room || !task){
+      alert("Заполните номер комнаты и что нужно убрать");
+      return;
+    }
+
+    const tasks = loadTasks();
+    tasks.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      room, task,
+      time: time || null,
+      status: "pending", // pending -> progress -> done
+      createdAt: Date.now()
+    });
+    saveTasks(tasks);
+
+    document.getElementById("room").value = "";
+    document.getElementById("task").value = "";
+    document.getElementById("time").value = "";
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+
+    renderTasks();
+  });
+
+  function statusLabel(t){
+    if (t.status === "done") return "Выполнено";
+    if (t.status === "progress") return "Выполняется";
+    return t.time ? ("Будет выполнено в " + t.time) : "В ожидании";
+  }
+
+  function renderTasks(){
+    const tasks = loadTasks().sort((a,b)=>b.createdAt-a.createdAt);
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    if (tasks.length === 0){
+      list.innerHTML = '<div class="empty">Пока нет задач</div>';
+      return;
+    }
+
+    tasks.forEach(t => {
+      const div = document.createElement("div");
+      div.className = "task status-" + t.status;
+      div.innerHTML = `
+        <div class="task-info">
+          <b>Комната ${t.room}</b>
+          <div>${t.task}${t.time ? " • " + t.time : ""}</div>
+          <span class="badge">${statusLabel(t)}</span>
+        </div>
+        <div class="task-actions">
+          ${t.status !== "progress" && t.status !== "done" ? `<button class="icon-btn" style="background:var(--blue)" data-action="progress" data-id="${t.id}">В работу</button>` : ""}
+          ${t.status !== "done" ? `<button class="icon-btn" style="background:var(--green)" data-action="done" data-id="${t.id}">Готово</button>` : `<button class="icon-btn" style="background:var(--pending)" data-action="reset" data-id="${t.id}">Вернуть</button>`}
+          <button class="icon-btn del" data-action="delete" data-id="${t.id}">✕</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    list.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        let tasks = loadTasks();
+        const idx = tasks.findIndex(x => x.id === id);
+        if (idx === -1) return;
+
+        if (action === "progress") tasks[idx].status = "progress";
+        if (action === "done") tasks[idx].status = "done";
+        if (action === "reset") tasks[idx].status = "pending";
+        if (action === "delete") tasks.splice(idx,1);
+
+        saveTasks(tasks);
+        renderTasks();
+      });
+    });
+  }
+
+  renderTasks();
+  // обновление списка, если задачи меняются в другой вкладке (например, работник нажал "Готово")
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) renderTasks();
+  });
+  setInterval(renderTasks, 3000);
+</script>
+</body>
+</html>
