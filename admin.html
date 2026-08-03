@@ -218,6 +218,9 @@
 
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
   // --- защита от прямого захода без пароля ---
   if (sessionStorage.getItem("role") !== "admin" || !sessionStorage.getItem("token")) {
@@ -229,16 +232,11 @@
     window.location.href = "index.html";
   });
 
-  const STORAGE_KEY = "cleaning_tasks";
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const tasksRef = db.ref("tasks");
 
-  function loadTasks(){
-    try{
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    }catch(e){ return []; }
-  }
-  function saveTasks(tasks){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }
+  let currentTasks = [];
 
   // presets
   let selectedPreset = null;
@@ -264,22 +262,17 @@
       return;
     }
 
-    const tasks = loadTasks();
-    tasks.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    tasksRef.push({
       room, task,
       time: time || null,
       status: "pending", // pending -> progress -> done
       createdAt: Date.now()
     });
-    saveTasks(tasks);
 
     document.getElementById("room").value = "";
     document.getElementById("task").value = "";
     document.getElementById("time").value = "";
     document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
-
-    renderTasks();
   });
 
   function statusLabel(t){
@@ -289,7 +282,7 @@
   }
 
   function renderTasks(){
-    const tasks = loadTasks().sort((a,b)=>b.createdAt-a.createdAt);
+    const tasks = [...currentTasks].sort((a,b)=>b.createdAt-a.createdAt);
     const list = document.getElementById("taskList");
     list.innerHTML = "";
 
@@ -320,27 +313,24 @@
       btn.addEventListener("click", () => {
         const id = btn.dataset.id;
         const action = btn.dataset.action;
-        let tasks = loadTasks();
-        const idx = tasks.findIndex(x => x.id === id);
-        if (idx === -1) return;
 
-        if (action === "progress") tasks[idx].status = "progress";
-        if (action === "done") tasks[idx].status = "done";
-        if (action === "reset") tasks[idx].status = "pending";
-        if (action === "delete") tasks.splice(idx,1);
-
-        saveTasks(tasks);
-        renderTasks();
+        if (action === "progress") tasksRef.child(id).update({status:"progress"});
+        if (action === "done") tasksRef.child(id).update({status:"done"});
+        if (action === "reset") tasksRef.child(id).update({status:"pending"});
+        if (action === "delete") tasksRef.child(id).remove();
       });
     });
   }
 
-  renderTasks();
-  // обновление списка, если задачи меняются в другой вкладке (например, работник нажал "Готово")
-  window.addEventListener("storage", (e) => {
-    if (e.key === STORAGE_KEY) renderTasks();
+  // realtime-подписка: обновляется автоматически на всех устройствах
+  tasksRef.on("value", (snapshot) => {
+    const tasks = [];
+    snapshot.forEach((child) => {
+      tasks.push({ id: child.key, ...child.val() });
+    });
+    currentTasks = tasks;
+    renderTasks();
   });
-  setInterval(renderTasks, 3000);
 </script>
 </body>
 </html>

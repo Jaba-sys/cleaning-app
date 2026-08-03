@@ -116,6 +116,9 @@
   <div id="taskList"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
   // --- block direct access without login ---
   if (sessionStorage.getItem("role") !== "worker" || !sessionStorage.getItem("token")) {
@@ -127,7 +130,11 @@
     window.location.href = "index.html";
   });
 
-  const STORAGE_KEY = "cleaning_tasks";
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const tasksRef = db.ref("tasks");
+  let currentTasks = [];
+
   // hash of the cancel password (321123), so it's not visible in the page source
   const CANCEL_HASH = "d282c8a31606e750d5e70fdaabe3f17b61eb3df4beec5fc808ba3d854a6c9165";
 
@@ -137,15 +144,6 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
   }
 
-  function loadTasks(){
-    try{
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    }catch(e){ return []; }
-  }
-  function saveTasks(tasks){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-  }
-
   function statusLabel(t){
     if (t.status === "done") return "Done";
     if (t.status === "progress") return "In progress";
@@ -153,7 +151,7 @@
   }
 
   function renderTasks(){
-    const tasks = loadTasks()
+    const tasks = currentTasks
       .filter(t => t.status !== "done")
       .sort((a,b)=>a.createdAt-b.createdAt);
     const list = document.getElementById("taskList");
@@ -185,14 +183,9 @@
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const action = btn.dataset.action;
-        let tasks = loadTasks();
-        const idx = tasks.findIndex(x => x.id === id);
-        if (idx === -1) return;
 
         if (action === "done"){
-          tasks[idx].status = "done";
-          saveTasks(tasks);
-          renderTasks();
+          tasksRef.child(id).update({status:"done"});
         }
 
         if (action === "cancel"){
@@ -200,9 +193,7 @@
           if (pwd === null) return;
           const hash = await sha256(pwd);
           if (hash === CANCEL_HASH){
-            tasks[idx].status = "pending";
-            saveTasks(tasks);
-            renderTasks();
+            tasksRef.child(id).update({status:"pending"});
           } else {
             alert("Wrong password.");
           }
@@ -211,11 +202,15 @@
     });
   }
 
-  renderTasks();
-  window.addEventListener("storage", (e) => {
-    if (e.key === STORAGE_KEY) renderTasks();
+  // realtime subscription: auto-updates on every device
+  tasksRef.on("value", (snapshot) => {
+    const tasks = [];
+    snapshot.forEach((child) => {
+      tasks.push({ id: child.key, ...child.val() });
+    });
+    currentTasks = tasks;
+    renderTasks();
   });
-  setInterval(renderTasks, 3000);
 </script>
 </body>
 </html>
