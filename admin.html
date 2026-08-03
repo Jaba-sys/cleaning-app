@@ -197,10 +197,13 @@
     <label>Что нужно убрать</label>
     <input type="text" id="task" placeholder="Введите текст или выберите ниже">
     <div class="presets">
-      <button type="button" class="preset-btn" data-val="Вся комната">Вся комната</button>
-      <button type="button" class="preset-btn" data-val="Чемоданы">Чемоданы</button>
-      <button type="button" class="preset-btn" data-val="Кровать">Кровать</button>
+      <button type="button" class="preset-btn" data-val="Вся комната" data-price="450">Вся комната — 450</button>
+      <button type="button" class="preset-btn" data-val="Чемоданы" data-price="100">Чемоданы — 100</button>
+      <button type="button" class="preset-btn" data-val="Кровать" data-price="50">Кровать — 50</button>
     </div>
+
+    <label>Цена</label>
+    <input type="number" id="price" placeholder="Цена (грн)" min="0">
 
     <label>Время</label>
     <div class="time-row">
@@ -245,6 +248,7 @@
       document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById("task").value = btn.dataset.val;
+      document.getElementById("price").value = btn.dataset.price;
     });
   });
 
@@ -256,14 +260,20 @@
     const room = document.getElementById("room").value.trim();
     const task = document.getElementById("task").value.trim();
     const time = document.getElementById("time").value;
+    const priceVal = document.getElementById("price").value;
 
     if (!room || !task){
       alert("Заполните номер комнаты и что нужно убрать");
       return;
     }
+    if (priceVal === "" || isNaN(priceVal)){
+      alert("Укажите цену (для своего текста введите цену вручную)");
+      return;
+    }
 
     tasksRef.push({
       room, task,
+      price: Number(priceVal),
       time: time || null,
       status: "pending", // pending -> progress -> done
       hidden: false, // если true — не показывается гостю на странице поиска по номеру комнаты
@@ -272,6 +282,7 @@
 
     document.getElementById("room").value = "";
     document.getElementById("task").value = "";
+    document.getElementById("price").value = "";
     document.getElementById("time").value = "";
     document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
   });
@@ -298,7 +309,7 @@
       div.innerHTML = `
         <div class="task-info">
           <b>Комната ${t.room}</b>
-          <div>${t.task}${t.time ? " • " + t.time : ""}</div>
+          <div>${t.task}${t.time ? " • " + t.time : ""}${t.price != null ? " • " + t.price + " грн" : ""}</div>
           <span class="badge">${statusLabel(t)}</span>
           ${t.hidden ? '<span class="badge" style="background:#888;margin-left:6px;">Скрыто от гостей</span>' : ""}
         </div>

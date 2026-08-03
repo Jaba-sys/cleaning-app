@@ -166,7 +166,7 @@
       <div class="task status-${t.status}">
         <div class="task-info">
           <b>Room ${t.room}</b>
-          <div>${t.task}${t.time ? " • " + t.time : ""}</div>
+          <div>${t.task}${t.time ? " • " + t.time : ""}${t.price != null ? " • " + t.price + " грн" : ""}</div>
           <span class="badge">${statusLabel(t)}</span>
         </div>
         <div class="task-actions">${actionsHtml}</div>
